@@ -38,11 +38,19 @@
 //        shouldn't usually need to call this yourself as the value(),
 //        values(), and keys() methods already decode everything they return.
 //
+//    New additions: qs.without(key, value) and qs.toString(). See function
+//    documentation.
+//
 // Note: W3C recommends that ; be accepted as an alternative to & for
 // separating query string fields. To support that, simply insert a semicolon
 // immediately after each ampersand in the regular expression in the first
 // function below.
 
+//== Constructor ==//
+
+/**
+ * Construct a QueryString object from current location or provided string.
+ */
 function QueryString(qs) {
     // in case 'new' was omitted
     if (!(this instanceof QueryString)) { return new QueryString(qs); }
@@ -51,7 +59,7 @@ function QueryString(qs) {
     this.alist = [];
 
     // If no query string  was passed in use the one from the current page
-    if (!qs) qs = location.search;
+    if (typeof qs === 'undefined') qs = location.search;
 
     // Delete leading question mark, if there is one
     if (qs.charAt(0) == '?') qs = qs.substring(1);
@@ -69,6 +77,30 @@ function QueryString(qs) {
         this.alist.push([key, value])
     }
 }
+
+//== Static helpers ==//
+
+QueryString.mapDict = function mapDict(d, fkv) {
+    var ret = {};
+    for(var k in d) {
+        if (!d.hasOwnProperty(k)) { continue; }
+        var replace = fkv(k, d[k]);
+        if (replace !== undefined) {
+            ret[k] = replace;
+        }
+    }
+    return ret;
+};
+
+QueryString.filter = function filter(a, fe) {
+    var ret = [];
+    for (var i=0; i < a.length; i++) {
+        if (fe(a[i])) {
+            ret.push(a[i]);
+        }
+    }
+    return ret;
+};
 
 QueryString.decode = function decode(s) {
     s= s.replace(/\+/g,' ');
@@ -96,6 +128,12 @@ QueryString.decode = function decode(s) {
     return s;
 };
 
+QueryString.encode = function encode(s) {
+    return encodeURIComponent(s).replace(/%20/g, '+');
+};
+
+//== Instance methods ==//
+
 QueryString.prototype.value = function value(key) {
     var a= this.dict[key];
     return a ? a[a.length-1] : undefined;
@@ -108,7 +146,39 @@ QueryString.prototype.values = function values(key) {
 
 QueryString.prototype.keys = function keys() {
     var a= [];
-    for (var key in this.dict)
+    for (var key in this.dict) {
+        if (!this.dict.hasOwnProperty(key)) continue;
         a.push(key);
+    }
     return a;
+};
+
+/**
+ * Create a new QueryString object without any copies of the k=v pair.
+ */
+QueryString.prototype.without = function without(k, v) {
+    var ret = new QueryString();
+    ret.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
+        var ret = QueryString.filter(ovs, function(el) { return el !== v; });
+        return ret.length === 0 ? undefined : ret;
+    });
+    ret.alist = QueryString.filter(this.alist, function(kv) {
+        return !(kv[0] === k && kv[1] === v);
+    });
+    return ret;
+};
+
+/**
+ * Convert QueryString object back into a URL query-string starting with a '?'.
+ */
+QueryString.prototype.toString = function toString() {
+    var al = this.alist;
+    if (al.length === 0) { return ""; }
+    var enc = QueryString.encode;
+    var ret = "";
+    for (var i=0; i<al.length; i++) {
+        var kv = al[i];
+        ret += "&" + enc(kv[0]) + '=' + enc(kv[1])
+    }
+    return '?' + ret.substring(1);
 };
