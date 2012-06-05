@@ -50,12 +50,21 @@
 
 /**
  * Construct a QueryString object from current location or provided string.
+ * If a string is provided, it should either start with a '?' or be empty.
  */
 function QueryString(qs) {
     // in case 'new' was omitted
     if (!(this instanceof QueryString)) { return new QueryString(qs); }
 
+    // Values may be either a string (possibly empty) or null.
+
+    /** Dictionary of decoded keys to lists of decoded values */
     this.dict = {};
+    /**
+     * List of key/value pairs in order as map with both encoded and decoded
+     * strings for each (or possibly undefined in the case of values.)
+     * Map keys: key_enc, key_dec, val_enc, val_dec
+     */
     this.alist = [];
 
     // If no query string  was passed in use the one from the current page
@@ -67,14 +76,18 @@ function QueryString(qs) {
     // Parse it
     var re = /([^=&]+)(=([^&]*))?/g;
     while (match = re.exec(qs)) {
-        var key = decodeURIComponent(match[1].replace(/\+/g,' '));
-        var value = match[3] ? QueryString.decode(match[3]) : '';
-        if (this.dict[key]) {
-            this.dict[key].push(value);
+        var key_enc = match[1];
+        var val_enc = match[3];
+        var key_dec = decodeURIComponent(key_enc.replace(/\+/g,' '));
+        var val_dec = val_enc === undefined ? undefined
+                                            : QueryString.decode(val_enc);
+        if (this.dict[key_dec]) {
+            this.dict[key_dec].push(val_dec);
         } else {
-            this.dict[key] = [value];
+            this.dict[key_dec] = [val_dec];
         }
-        this.alist.push([key, value])
+        this.alist.push({key_enc:key_enc, key_dec:key_dec,
+                         val_enc:val_enc, val_dec:val_dec});
     }
 }
 
@@ -162,8 +175,8 @@ QueryString.prototype.without = function without(k, v) {
         var ret = QueryString.filter(ovs, function(el) { return el !== v; });
         return ret.length === 0 ? undefined : ret;
     });
-    ret.alist = QueryString.filter(this.alist, function(kv) {
-        return !(kv[0] === k && kv[1] === v);
+    ret.alist = QueryString.filter(this.alist, function(pair) {
+        return !(pair.key_dec === k && pair.val_dec === v);
     });
     return ret;
 };
@@ -177,8 +190,11 @@ QueryString.prototype.toString = function toString() {
     var enc = QueryString.encode;
     var ret = "";
     for (var i=0; i<al.length; i++) {
-        var kv = al[i];
-        ret += "&" + enc(kv[0]) + '=' + enc(kv[1])
+        var pair = al[i];
+        ret += "&" + pair.key_enc;
+        if (pair.val_enc !== undefined) {
+            ret += '=' + pair.val_enc;
+        }
     }
     return '?' + ret.substring(1);
 };
