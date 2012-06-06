@@ -206,14 +206,21 @@ QueryString.prototype.keys = function keys() {
  * @param {string|null} v Value of pair to add
  * @return {QueryString} new QueryString object
  */
-QueryString.prototype.plus = function with(k, v) {
+QueryString.prototype.plus = function plus(k, v) {
     var retQS = new QueryString();
-    retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
-        if (ok !== k) return ovs;
-        var retVs = ovs.slice();
-        retVs.push(v);
-        return retVs;
-    });
+    if (this.dict.hasOwnProperty(k)) {
+        retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
+            if (ok !== k) return ovs;
+            var retVs = ovs.slice();
+            retVs.push(v);
+            return retVs;
+        });
+    } else {
+        retQS.dict = QueryString.mapDict(this.dict, function(_, vs) {
+            return vs;
+        });
+        retQS.dict[k] = [v];
+    }
     retQS.alist = this.alist.slice();
     retQS.alist.push({key_enc:QueryString.encode(k), key_dec:k,
                       val_enc:QueryString.encode(v), val_dec:v});
@@ -232,13 +239,12 @@ QueryString.prototype.minus = function minus(k, v) {
     var checkVals = arguments.length === 2;
     var retQS = new QueryString();
     retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
-        var retVs;
         if (checkVals) {
-            retVs = QueryString.filter(ovs, function(el) { return el !== v; });
+            var vs = QueryString.filter(ovs, function(el) { return el !== v; });
+            return vs.length === 0 ? undefined : vs;
         } else {
-            retVs = ovs;
+            return ok === k ? undefined : ovs;
         }
-        return retVs.length === 0 ? undefined : retVs;
     });
     retQS.alist = QueryString.filter(this.alist, function(pair) {
         var matches = pair.key_dec === k && (!checkVals || pair.val_dec === v);
