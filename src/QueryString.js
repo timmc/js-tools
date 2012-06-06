@@ -26,6 +26,9 @@
  * previous incarnations, so meddling from the outside may have surprising
  * consequences.
  *
+ * The instance methods are also presented unbound as functions in
+ * QueryString.fns. For example: QueryString.fns.plus(someQS, "key", "val").
+ *
  * This is based on public domain code written in 2011 by Jan Wolter and
  * distributed at <http://unixpapa.com/js/querystring.html>. Modifications
  * in 2012 by Tim McCormack -- still under public domain. Tim McCormack's
@@ -271,3 +274,20 @@ QueryString.prototype.toString = function toString() {
     }
     return '?' + ret.substring(1);
 };
+
+/*== Instance functions ==*/
+
+(function makeAdapters() {
+    QueryString.fns = {};
+    var restArgs = "Array.prototype.slice.call(arguments, 1)";
+    function adapt(methName) {
+        var body = "return qs['"+methName+"'].apply(qs, "+restArgs+");"
+        QueryString.fns[methName] = Function("qs", body);
+    }
+    adapt('keys');
+    adapt('value');
+    adapt('values');
+    adapt('minus');
+    adapt('plus');
+    adapt('toString');
+})();
