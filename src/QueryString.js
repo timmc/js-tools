@@ -257,6 +257,18 @@ QueryString.prototype.minus = function minus(k, v) {
 };
 
 /**
+ * Return an decoded key-value pairs.
+ * @return {array} Array of key-value pair arrays, in order.
+ */
+QueryString.prototype.pairs = function pairs() {
+    var ret = [];
+    for(var i=0; i<this.alist.length; i++) {
+        ret.push([this.alist[i].key_dec, this.alist[i].val_dec]);
+    }
+    return ret;
+}
+
+/**
  * Convert QueryString object back into a URL query-string.
  * @return {string} querystring that starts with a '?' or is empty
  */
@@ -289,5 +301,6 @@ QueryString.prototype.toString = function toString() {
     adapt('values');
     adapt('minus');
     adapt('plus');
+    adapt('pairs');
     adapt('toString');
 })();
