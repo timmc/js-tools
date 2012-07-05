@@ -6,24 +6,41 @@
  *
  * This horrid querystring will be interpreted as follows:
  *  Input: ??a=b&foo=bar&with+space=also%20space&foo=baz&mult=iple=equals&blank=&missing&&&
- *  Output:  Key          | Value
+ *  Output:  Key          | .values(key)
  *           ============================
- *           '?a'         | 'b'
- *           'foo'        | 'bar'
- *           'with space' | 'also space'
- *           'foo'        | 'baz'
- *           'mult'       | 'iple=equals'
- *           'blank'      | ''
- *           'missing'    | <null>
+ *           '?a'         | ['b']
+ *           'foo'        | ['bar', 'baz']
+ *           'with space' | ['also space']
+ *           'foo'        | ['baz']
+ *           'mult'       | ['iple=equals']
+ *           'blank'      | ['']
+ *           'missing'    | [null]
+ *           'XXX'        | []
  *
  * Data model:
  * - Keys are strings, possibly empty. A key may be repeated.
  * - Values are strings, possibly empty, or null (when there is no '=').
  * - Order of key-value pairs is preserved.
+ * - Encoding details are preserved where possible. If QS receives input
+ *   with alphanumerics needlessly URL-encoded, it will preserve that for
+ *   output.
+ * - Not preserved: Leading, trailing, or multiple consecutive ampersands
+ *
+ * API:
+ * - Constructor: Explicit querystring, or default to current URL's querystring
+ * - .keys(): List of keys in arbitrary order
+ * - .value(key): Last value of key, or undefined
+ * - .values(key): Array of values of key, in order
+ * - .plus(key, val): New QS with pair added to end
+ * - .minus(key): New QS without any pairs for the key
+ * - .minus(key,val): New QS without any pairs matching both key and val
+ * - .pairs(): Array of [key, val] arrays, in order.
+ * - .toString(): Serialize as "" or "?...&..."
+ * - .blank: Empty querystring, for convenience
  *
  * QueryString objects are intended to be immutable. The plus and minus
  * methods return new objects that may share some structure with their
- * previous incarnations, so meddling from the outside may have surprising
+ * previous incarnations, so meddling with internals may have surprising
  * consequences.
  *
  * The instance methods are also presented unbound as functions in
@@ -89,8 +106,15 @@ function QueryString(qs) {
     }
 }
 
-//== Static helpers ==//
+//== Internal static utility functions ==//
 
+/**
+ * Map over a dictionary, replacing vals.
+ * @private
+ * @param {object} d An input dictionary
+ * @param {function} fkv Binary function of [key, value -> value]
+ * @return {object} A new dictionary with vals as produced by fkv.
+ */
 QueryString.mapDict = function mapDict(d, fkv) {
     var ret = {};
     for(var k in d) {
@@ -286,6 +310,13 @@ QueryString.prototype.toString = function toString() {
     }
     return '?' + ret.substring(1);
 };
+
+/*== Public utilities ==*/
+
+/**
+ * A blank querystring that may be used to build up a new qs.
+ */
+QueryString.blank = new QueryString("");
 
 /*== Instance functions ==*/
 
