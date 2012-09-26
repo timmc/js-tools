@@ -28,15 +28,17 @@
  *
  * API:
  * - Constructor: Explicit querystring, or default to current URL's querystring
- * - .keys(): List of keys in arbitrary order
- * - .value(key): Last value of key, or undefined
- * - .values(key): Array of values of key, in order
- * - .plus(key, val): New QS with pair added to end
- * - .minus(key): New QS without any pairs for the key
- * - .minus(key,val): New QS without any pairs matching both key and val
- * - .pairs(): Array of [key, val] arrays, in order.
- * - .toString(): Serialize as "" or "?...&..."
- * - .blank: Empty querystring, for convenience
+ * - Methods:
+ *   - .keys(): List of keys in arbitrary order
+ *   - .value(key): Last value of key, or undefined
+ *   - .values(key): Array of values of key, in order
+ *   - .plus(key, val): New QS with pair added to end
+ *   - .minus(key): New QS without any pairs for the key
+ *   - .minus(key,val): New QS without any pairs matching both key and val
+ *   - .pairs(): Array of [key, val] arrays, in order.
+ *   - .toString(): Serialize as "" or "?...&..."
+ * - Constants:
+ *   - .blank: Empty QueryString, for convenience
  *
  * QueryString objects are intended to be immutable. The plus and minus
  * methods return new objects that may share some structure with their
@@ -75,13 +77,15 @@ function QueryString(qs) {
 
     // QS values may be either a string (possibly empty) or null.
 
-    /* Dictionary of decoded keys to non-empty lists of decoded values */
+    /* Dictionary of decoded keys to non-empty lists of decoded values. */
     this.dict = {};
     /* List of key/value pairs in order as map with both encoded and decoded
      * strings for each (or possibly undefined in the case of values.)
      * Map keys: key_enc, key_dec, val_enc, val_dec
      */
     this.alist = [];
+
+    //TODO: Move parsing code into separate fn
 
     // Delete leading question mark, if there is one
     if (qs.charAt(0) == '?') qs = qs.substring(1);
@@ -234,7 +238,7 @@ QueryString.prototype.keys = function keys() {
  * @return {QueryString} new QueryString object
  */
 QueryString.prototype.plus = function plus(k, v) {
-    var retQS = new QueryString();
+    var retQS = new QueryString("");
     if (this.dict.hasOwnProperty(k)) {
         retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
             if (ok !== k) return ovs;
@@ -264,7 +268,7 @@ QueryString.prototype.plus = function plus(k, v) {
  */
 QueryString.prototype.minus = function minus(k, v) {
     var checkVals = arguments.length === 2;
-    var retQS = new QueryString();
+    var retQS = new QueryString("");
     retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
         if (checkVals) {
             var vs = QueryString.filter(ovs, function(el) { return el !== v; });
@@ -299,7 +303,6 @@ QueryString.prototype.pairs = function pairs() {
 QueryString.prototype.toString = function toString() {
     var al = this.alist;
     if (al.length === 0) { return ""; }
-    var enc = QueryString.encode;
     var ret = "";
     for (var i=0; i<al.length; i++) {
         var pair = al[i];
@@ -335,3 +338,4 @@ QueryString.blank = new QueryString("");
     adapt('pairs');
     adapt('toString');
 })();
+
