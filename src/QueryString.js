@@ -82,6 +82,7 @@ function QueryString(qs) {
     /* List of key/value pairs in order as map with both encoded and decoded
      * strings for each (or possibly undefined in the case of values.)
      * Map keys: key_enc, key_dec, val_enc, val_dec
+     * val_enc and val_dec may be === null.
      */
     this.alist = [];
 
@@ -194,6 +195,16 @@ QueryString.encode = function encode(s) {
     return encodeURIComponent(s).replace(/%20/g, '+');
 };
 
+/**
+ * Coerce an input to a string, unless it is null.
+ * @private
+ * @param {*} val Any value
+ * @return {string|null}
+ */
+QueryString.coerceValue = function coerceValue(val) {
+    return (val === null) ? val : String(val);
+};
+
 //== Instance methods ==//
 
 /**
@@ -253,8 +264,10 @@ QueryString.prototype.plus = function plus(k, v) {
         retQS.dict[k] = [v];
     }
     retQS.alist = this.alist.slice();
-    retQS.alist.push({key_enc:QueryString.encode(k), key_dec:k,
-                      val_enc:QueryString.encode(v), val_dec:v});
+    retQS.alist.push({key_enc:QueryString.encode(k),
+                      key_dec:k,
+                      val_enc:v === null ? null : QueryString.encode(v),
+                      val_dec:v});
     return retQS;
 };
 
