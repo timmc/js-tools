@@ -39,6 +39,8 @@
  *   - .toString(): Serialize as "" or "?...&..."
  * - Constants:
  *   - .blank: Empty QueryString, for convenience
+ * - Functions:
+ *   - .fromDict(d): Build a QueryString from a dictionary
  *
  * QueryString objects are intended to be immutable. The plus and minus
  * methods return new objects that may share some structure with their
@@ -249,6 +251,7 @@ QueryString.prototype.keys = function keys() {
  * @return {QueryString} new QueryString object
  */
 QueryString.prototype.plus = function plus(k, v) {
+    var v = QueryString.coerceValue(v);
     var retQS = new QueryString("");
     if (this.dict.hasOwnProperty(k)) {
         retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
@@ -280,6 +283,7 @@ QueryString.prototype.plus = function plus(k, v) {
  * @return {QueryString} new QueryString object
  */
 QueryString.prototype.minus = function minus(k, v) {
+    var v = QueryString.coerceValue(v);
     var checkVals = arguments.length === 2;
     var retQS = new QueryString("");
     retQS.dict = QueryString.mapDict(this.dict, function(ok, ovs) {
@@ -333,6 +337,22 @@ QueryString.prototype.toString = function toString() {
  * A blank querystring that may be used to build up a new qs.
  */
 QueryString.blank = new QueryString("");
+
+/**
+ * Build a QueryString from a dictionary. Values that are not strings,
+ * null, or undefined are coerced to strings.
+ * @param {Object} d Dictionary of keys to values.
+ * @return {QueryString} Instance containing dict key/value pairs in
+ *   some order.
+ */
+QueryString.fromDict = function fromDict(d) {
+    var retQS = QueryString.blank;
+    for (var key in d) {
+        if (!d.hasOwnProperty(key)) continue;
+        retQS = retQS.plus(key, QueryString.coerceValue(d[key]));
+    }
+    return retQS;
+};
 
 /*== Instance functions ==*/
 
